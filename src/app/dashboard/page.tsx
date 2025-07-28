@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { gradePoints } from '@/lib/gradePoints';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts';
-import { PlusCircle, Trash2, BookOpen, Star, ClipboardList, Calculator } from 'lucide-react';
+import { PlusCircle, Trash2, BookOpen, Star, ClipboardList, Calculator, ChevronDown } from 'lucide-react';
 import { UserNav } from '@/components/UserNav';
 import { useTheme } from 'next-themes';
 
@@ -48,6 +48,7 @@ export default function DashboardPage() {
   const [courseName, setCourseName] = useState('');
   const [credits, setCredits] = useState('');
   const [grade, setGrade] = useState('');
+  const [expandedSemesters, setExpandedSemesters] = useState<string[]>([]);
 
   const handleEditSemesterName = async (semesterId: string) => {
     setEditingSemesterId(semesterId);
@@ -176,11 +177,13 @@ export default function DashboardPage() {
   };
 
   const handleDeleteSemester = (semesterId: string) => {
-    toast.promise(fetch('/api/semesters', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ semesterId }) }), {
-      loading: 'Deleting semester...',
-      success: () => { fetchData(); return 'Semester deleted!'; },
-      error: 'Failed to delete semester.',
-    });
+    if (window.confirm('Are you sure you want to delete this semester?')) {
+      toast.promise(fetch('/api/semesters', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ semesterId }) }), {
+        loading: 'Deleting semester...',
+        success: () => { fetchData(); return 'Semester deleted!'; },
+        error: 'Failed to delete semester.',
+      });
+    }
   };
 
   const handleAddCourse = async (e: React.FormEvent) => {
@@ -193,12 +196,22 @@ export default function DashboardPage() {
     });
   };
 
+  const toggleSemester = (semesterId: string) => {
+    setExpandedSemesters(prev =>
+      prev.includes(semesterId)
+        ? prev.filter(id => id !== semesterId)
+        : [...prev, semesterId]
+    );
+  };
+
   const handleDeleteCourse = (semesterId: string, courseId: string) => {
-    toast.promise(fetch('/api/courses', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ semesterId, courseId }) }), {
-      loading: 'Deleting course...',
-      success: () => { fetchData(); return 'Course deleted!'; },
-      error: 'Failed to delete course.',
-    });
+    if (window.confirm('Are you sure you want to delete this course?')) {
+      toast.promise(fetch('/api/courses', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ semesterId, courseId }) }), {
+        loading: 'Deleting course...',
+        success: () => { fetchData(); return 'Course deleted!'; },
+        error: 'Failed to delete course.',
+      });
+    }
   };
 
   if (isLoading || status === 'loading') {
@@ -379,11 +392,49 @@ export default function DashboardPage() {
             <DialogTrigger asChild>
               <Button><PlusCircle className="mr-2 h-4 w-4" /> Add Semester</Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Add New Semester</DialogTitle></DialogHeader>
+            <DialogContent className="sm:max-w-[450px] p-6">
+              <DialogHeader className="space-y-2">
+                <DialogTitle className="text-2xl font-bold text-center">
+                  Add New Semester
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground text-center">
+                  Enter the name for the new semester below.
+                </DialogDescription>
+              </DialogHeader>
               <form onSubmit={handleAddSemester} className="space-y-4">
-                <div><Label htmlFor="semesterName">Semester Name</Label><Input id="semesterName" value={semesterName} onChange={(e) => setSemesterName(e.target.value)} required /></div>
-                <Button type="submit" className="w-full">Add Semester</Button>
+                <div className="space-y-2">
+                  <Label htmlFor="semesterName" className="text-sm font-medium">
+                    Semester Name
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="semesterName"
+                      value={semesterName}
+                      onChange={(e) => setSemesterName(e.target.value)}
+                      required
+                      placeholder="e.g., Fall 2024"
+                      className="pl-3"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsSemesterDialogOpen(false)}
+                    className="w-[48%] hover:bg-destructive/5 hover:text-destructive"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="w-[48%] flex items-center justify-center gap-2"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    Add Semester
+                  </Button>
+                </div>
               </form>
             </DialogContent>
           </Dialog>
@@ -418,7 +469,12 @@ export default function DashboardPage() {
                     </div>
                   ) : (
                     <>
-                      <CardTitle>{semester.semesterName}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => toggleSemester(semester._id)}>
+                          <ChevronDown className={`h-5 w-5 transition-transform ${expandedSemesters.includes(semester._id) ? 'rotate-180' : ''}`} />
+                        </Button>
+                        <CardTitle>{semester.semesterName}</CardTitle>
+                      </div>
                       <CardDescription>SGPA: {calculateSGPA(semester.courses)}</CardDescription>
                     </>
                   )}
@@ -435,47 +491,142 @@ export default function DashboardPage() {
                   )}
                   <Dialog open={isCourseDialogOpen && currentSemesterId === semester._id} onOpenChange={(isOpen) => { if (!isOpen) setCurrentSemesterId(null); setIsCourseDialogOpen(isOpen); }}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setCurrentSemesterId(semester._id)}><PlusCircle className="mr-2 h-4 w-4" />Add Course</Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setCurrentSemesterId(semester._id)}
+                        className="group"
+                      >
+                        <PlusCircle className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
+                        <span className="transition-colors group-hover:text-primary">Add Course</span>
+                      </Button>
                     </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader><DialogTitle>Add New Course</DialogTitle></DialogHeader>
+                    <DialogContent className="sm:max-w-[450px] p-6">
+                      <DialogHeader className="space-y-2">
+                        <DialogTitle className="text-2xl font-bold text-center">
+                          Add New Course
+                        </DialogTitle>
+                        <DialogDescription className="text-muted-foreground text-center">
+                          Enter your course details below
+                        </DialogDescription>
+                      </DialogHeader>
                       <form onSubmit={handleAddCourse} className="space-y-4">
-                        <div><Label htmlFor="courseName">Course Name</Label><Input id="courseName" value={courseName} onChange={(e) => setCourseName(e.target.value)} required /></div>
-                        <div><Label htmlFor="credits">Credits</Label><Input id="credits" type="number" value={credits} onChange={(e) => setCredits(e.target.value)} required /></div>
-                        <div><Label htmlFor="grade">Grade</Label><Select onValueChange={setGrade} value={grade} required><SelectTrigger><SelectValue placeholder="Select a grade" /></SelectTrigger><SelectContent>{Object.keys(gradePoints).map(g => (<SelectItem key={g} value={g}>{g}</SelectItem>))}</SelectContent></Select></div>
-                        <Button type="submit" className="w-full">Add Course</Button>
+                        <div className="space-y-2">
+                          <Label htmlFor="courseName" className="text-sm font-medium">
+                            Course Name
+                            <span className="text-red-500 ml-1">*</span>
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="courseName"
+                              value={courseName}
+                              onChange={(e) => setCourseName(e.target.value)}
+                              required
+                              placeholder="e.g., Computer Science Fundamentals"
+                              className="pl-3"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="credits" className="text-sm font-medium">
+                            Credits
+                            <span className="text-red-500 ml-1">*</span>
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="credits"
+                              type="number"
+                              value={credits}
+                              onChange={(e) => setCredits(e.target.value)}
+                              required
+                              min="1"
+                              max="5"
+                              className="w-24"
+                            />
+                            <p className="text-xs text-muted-foreground ml-2">
+                              {credits && credits !== '' ? `(${credits} credit${Number(credits) > 1 ? 's' : ''})` : ''}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="grade" className="text-sm font-medium">
+                            Grade
+                            <span className="text-red-500 ml-1">*</span>
+                          </Label>
+                          <Select
+                            onValueChange={setGrade}
+                            value={grade}
+                            required
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a grade" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(gradePoints).map(([grade, points]) => (
+                                <SelectItem key={grade} value={grade}>
+                                  <div className="flex items-center justify-between w-full">
+                                    <span>{grade}</span>
+                                    <span className="text-sm text-muted-foreground">{points} points</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setIsCourseDialogOpen(false)}
+                            className="w-[48%] hover:bg-destructive/5 hover:text-destructive"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            className="w-[48%] flex items-center justify-center gap-2"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                            Add Course
+                          </Button>
+                        </div>
                       </form>
                     </DialogContent>
                   </Dialog>
                   <Button variant="destructive" size="icon" onClick={() => handleDeleteSemester(semester._id)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Course Name</TableHead>
-                      <TableHead>Credits</TableHead>
-                      <TableHead>Grade</TableHead>
-                      <TableHead>Points</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {semester.courses.map((course) => (
-                      <TableRow key={course._id}>
-                        <TableCell>{course.courseName}</TableCell>
-                        <TableCell>{course.credits}</TableCell>
-                        <TableCell>{course.grade}</TableCell>
-                        <TableCell>{gradePoints[course.grade]}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteCourse(semester._id, course._id)}><Trash2 className="h-4 w-4" /></Button>
-                        </TableCell>
+              {expandedSemesters.includes(semester._id) && (
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Course Name</TableHead>
+                        <TableHead>Credits</TableHead>
+                        <TableHead>Grade</TableHead>
+                        <TableHead>Points</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
+                    </TableHeader>
+                    <TableBody>
+                      {semester.courses.map((course) => (
+                        <TableRow key={course._id}>
+                          <TableCell>{course.courseName}</TableCell>
+                          <TableCell>{course.credits}</TableCell>
+                          <TableCell>{course.grade}</TableCell>
+                          <TableCell>{gradePoints[course.grade]}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteCourse(semester._id, course._id)}><Trash2 className="h-4 w-4" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              )}
             </Card>
           ))}
         </div>
