@@ -13,9 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { gradePoints } from '@/lib/gradePoints';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts';
 import { PlusCircle, Trash2, BookOpen, Star, ClipboardList, Calculator } from 'lucide-react';
 import { UserNav } from '@/components/UserNav';
+import { useTheme } from 'next-themes';
 
 interface Course {
   _id: string;
@@ -33,17 +34,64 @@ interface Semester {
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { theme } = useTheme();
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isSemesterDialogOpen, setIsSemesterDialogOpen] = useState(false);
   const [isCourseDialogOpen, setIsCourseDialogOpen] = useState(false);
   const [currentSemesterId, setCurrentSemesterId] = useState<string | null>(null);
+  const [editingSemesterId, setEditingSemesterId] = useState<string | null>(null);
+  const [newSemesterName, setNewSemesterName] = useState('');
 
   const [semesterName, setSemesterName] = useState('');
   const [courseName, setCourseName] = useState('');
   const [credits, setCredits] = useState('');
   const [grade, setGrade] = useState('');
+
+  const handleEditSemesterName = async (semesterId: string) => {
+    setEditingSemesterId(semesterId);
+    const semester = semesters.find(s => s._id === semesterId);
+    if (semester) {
+      setNewSemesterName(semester.semesterName);
+    }
+  };
+
+  const handleSaveSemesterName = async () => {
+    try {
+      const response = await fetch('/api/semester/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          semesterId: editingSemesterId,
+          newSemesterName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update semester name');
+      }
+
+      toast.success('Semester name updated successfully');
+      setEditingSemesterId(null);
+      setNewSemesterName('');
+      // Refresh semesters
+      const res = await fetch('/api/data');
+      if (res.ok) {
+        const data = await res.json();
+        setSemesters(data.semesters || []);
+      }
+    } catch (error) {
+      toast.error('Failed to update semester name');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSemesterId(null);
+    setNewSemesterName('');
+  };
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -102,6 +150,19 @@ export default function DashboardPage() {
 
     return Object.entries(gradeCounts).map(([name, value]) => ({ name, value }));
   }, [semesters]);
+
+  // Theme-aware colors for charts
+  const chartColors = useMemo(() => {
+    return {
+      primary: theme === 'dark' ? '#818cf8' : '#3b82f6', // Theme-aware primary color
+      background: theme === 'dark' ? '#111827' : '#ffffff',
+      text: theme === 'dark' ? '#e5e7eb' : '#1f2937',
+      grid: theme === 'dark' ? '#374151' : '#e5e7eb',
+      tooltipBg: theme === 'dark' ? '#1f2937' : '#ffffff',
+      tooltipBorder: theme === 'dark' ? '#374151' : '#e5e7eb',
+      tooltipText: theme === 'dark' ? '#ffffff' : '#1f2937',
+    };
+  }, [theme]);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1943'];
 
@@ -198,27 +259,34 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2 mb-8">
-          <Card className="transition-transform duration-300 ease-in-out hover:scale-105">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 mb-8">
+          <Card className="group transition-transform duration-300 ease-in-out hover:scale-105">
             <CardHeader>
               <CardTitle>SGPA Trend</CardTitle>
-              <CardDescription>Your semester-wise performance.</CardDescription>
+              <CardDescription>Your SGPA performance over semesters</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pl-2">
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={sgpaData}>
+                <AreaChart data={sgpaData}>
                   <defs>
                     <linearGradient id="sgpaGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                      <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="sgpa" fill="url(#sgpaGradient)" />
-                </BarChart>
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                  <XAxis dataKey="name" stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: chartColors.tooltipBg,
+                      borderColor: chartColors.tooltipBorder,
+                      color: chartColors.tooltipText,
+                      borderRadius: '0.5rem',
+                    }}
+                  />
+                  <Area type="monotone" dataKey="sgpa" stroke={chartColors.primary} fillOpacity={1} fill="url(#sgpaGradient)" />
+                </AreaChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -229,13 +297,76 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie data={gradeDistributionData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+                <PieChart width={300} height={300}>
+                  <defs>
+                    {COLORS.map((color, i) => (
+                      <linearGradient key={i} id={`gradeGradient${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor={color} stopOpacity={0.8} />
+                        <stop offset="100%" stopColor={color} stopOpacity={0.3} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <Pie
+                    data={gradeDistributionData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    fill={chartColors.primary}
+                    paddingAngle={5}
+                    dataKey="value"
+                    isAnimationActive={true}
+                    animationDuration={1000}
+                    animationEasing="ease-out"
+                  >
                     {gradeDistributionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={`url(#gradeGradient${index})`}
+                        style={{
+                          transition: 'transform 0.3s ease-in-out',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => {
+                          toast.success(`Selected: ${entry.name} (${entry.value} courses)`);
+                        }}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: chartColors.tooltipBg,
+                      borderColor: chartColors.tooltipBorder,
+                      color: chartColors.tooltipText,
+                      borderRadius: '0.5rem',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    }}
+                    labelStyle={{
+                      fontWeight: 'bold',
+                      color: chartColors.primary,
+                    }}
+                    formatter={(value: number, name: string) => {
+                      const total = gradeDistributionData.reduce((sum, item) => sum + Number(item.value), 0);
+                      const percentage = ((Number(value) / total) * 100).toFixed(1);
+                      return [
+                        `${value} (${percentage}%)`,
+                        name,
+                      ];
+                    }}
+                  />
+                  <Legend
+                    layout="vertical"
+                    align="right"
+                    verticalAlign="middle"
+                    iconSize={10}
+                    iconType="circle"
+                    wrapperStyle={{
+                      position: 'absolute',
+                      right: -5,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -263,10 +394,45 @@ export default function DashboardPage() {
             <Card key={semester._id} className="transition-transform duration-300 ease-in-out hover:scale-105">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>{semester.semesterName}</CardTitle>
-                  <CardDescription>SGPA: {calculateSGPA(semester.courses)}</CardDescription>
+                  {editingSemesterId === semester._id ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={newSemesterName}
+                        onChange={(e) => setNewSemesterName(e.target.value)}
+                        className="w-48"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSaveSemesterName}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <CardTitle>{semester.semesterName}</CardTitle>
+                      <CardDescription>SGPA: {calculateSGPA(semester.courses)}</CardDescription>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
+                  {editingSemesterId !== semester._id && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditSemesterName(semester._id)}
+                    >
+                      Edit
+                    </Button>
+                  )}
                   <Dialog open={isCourseDialogOpen && currentSemesterId === semester._id} onOpenChange={(isOpen) => { if (!isOpen) setCurrentSemesterId(null); setIsCourseDialogOpen(isOpen); }}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" onClick={() => setCurrentSemesterId(semester._id)}><PlusCircle className="mr-2 h-4 w-4" />Add Course</Button>
