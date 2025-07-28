@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { gradePoints } from '@/lib/gradePoints';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { PlusCircle, Trash2, BookOpen, Star, ClipboardList } from 'lucide-react';
+import { PlusCircle, Trash2, BookOpen, Star, ClipboardList, Calculator } from 'lucide-react';
 import { UserNav } from '@/components/UserNav';
 
 interface Course {
@@ -147,14 +147,12 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
-        <div className="container flex h-16 items-center">
-          <div className="mr-4 hidden md:flex">
-            <a className="mr-6 flex items-center space-x-2 transition-transform duration-300 ease-in-out hover:scale-105" href="/">
-              <BookOpen className="h-6 w-6" />
-              <span className="hidden font-bold sm:inline-block">CGPA Calculator</span>
-            </a>
-          </div>
-          <div className="flex flex-1 items-center justify-end space-x-4">
+        <div className="container flex h-16 items-center justify-between px-4 md:px-10">
+          <a className="flex items-center space-x-2" href="/dashboard">
+            <Calculator className="h-6 w-6" />
+            <span className="font-bold text-lg">CGPA Calculator</span>
+          </a>
+          <div className="flex items-center justify-end space-x-4">
             {session?.user?.email && (
               <p className="text-sm text-muted-foreground">
                 Welcome, {session.user.email.split('@')[0]}!
