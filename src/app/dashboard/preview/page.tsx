@@ -1,16 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
-import { useTheme } from 'next-themes';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Semester } from '@/lib/types';
 import { gradePoints } from '@/lib/gradePoints';
 
-export default function PreviewPage() {
-  const { theme } = useTheme();
+function Preview() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const semesterId = searchParams.get('semesterId');
@@ -35,6 +33,8 @@ export default function PreviewPage() {
           setError(err.message);
           setLoading(false);
         });
+    } else {
+      setLoading(false);
     }
   }, [semesterId]);
 
@@ -152,5 +152,13 @@ export default function PreviewPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function PreviewPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading Preview...</div>}>
+      <Preview />
+    </Suspense>
   );
 }
