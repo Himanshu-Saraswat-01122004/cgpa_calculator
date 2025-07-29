@@ -3,33 +3,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { gradePoints } from '@/lib/gradePoints';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts';
-import { PlusCircle, Trash2, BookOpen, Star, ClipboardList, Calculator, ChevronDown } from 'lucide-react';
+import { BookOpen, Star, ClipboardList, Calculator } from 'lucide-react';
+import { AddSemesterDialog } from '@/components/dashboard/AddSemesterDialog';
+import { SemesterCard } from '@/components/dashboard/SemesterCard';
 import { UserNav } from '@/components/UserNav';
 import { useTheme } from 'next-themes';
-
-interface Course {
-  _id: string;
-  courseName: string;
-  credits: number;
-  grade: string;
-}
-
-interface Semester {
-  _id: string;
-  semesterName: string;
-  courses: Course[];
-}
+import { Semester, Course } from '@/lib/types';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -38,16 +22,10 @@ export default function DashboardPage() {
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [isSemesterDialogOpen, setIsSemesterDialogOpen] = useState(false);
   const [isCourseDialogOpen, setIsCourseDialogOpen] = useState(false);
   const [currentSemesterId, setCurrentSemesterId] = useState<string | null>(null);
   const [editingSemesterId, setEditingSemesterId] = useState<string | null>(null);
   const [newSemesterName, setNewSemesterName] = useState('');
-
-  const [semesterName, setSemesterName] = useState('');
-  const [courseName, setCourseName] = useState('');
-  const [credits, setCredits] = useState('');
-  const [grade, setGrade] = useState('');
   const [expandedSemesters, setExpandedSemesters] = useState<string[]>([]);
 
   const handleEditSemesterName = async (semesterId: string) => {
@@ -144,7 +122,7 @@ export default function DashboardPage() {
 
   const gradeDistributionData = useMemo(() => {
     const allCourses = semesters.flatMap(s => s.courses);
-    const gradeCounts = allCourses.reduce((acc, course) => {
+    const gradeCounts = allCourses.reduce((acc: { [key: string]: number }, course) => {
       acc[course.grade] = (acc[course.grade] || 0) + 1;
       return acc;
     }, {} as { [key: string]: number });
@@ -167,14 +145,7 @@ export default function DashboardPage() {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1943'];
 
-  const handleAddSemester = async (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.promise(fetch('/api/semesters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ semesterName }) }), {
-      loading: 'Adding semester...',
-      success: () => { fetchData(); setSemesterName(''); setIsSemesterDialogOpen(false); return 'Semester added!'; },
-      error: 'Failed to add semester.',
-    });
-  };
+
 
   const handleDeleteSemester = (semesterId: string) => {
     if (window.confirm('Are you sure you want to delete this semester?')) {
@@ -184,16 +155,6 @@ export default function DashboardPage() {
         error: 'Failed to delete semester.',
       });
     }
-  };
-
-  const handleAddCourse = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentSemesterId) return;
-    toast.promise(fetch('/api/courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ semesterId: currentSemesterId, courseName, credits: Number(credits), grade }) }), {
-      loading: 'Adding course...',
-      success: () => { fetchData(); setCourseName(''); setCredits(''); setGrade(''); setIsCourseDialogOpen(false); return 'Course added!'; },
-      error: 'Failed to add course.',
-    });
   };
 
   const toggleSemester = (semesterId: string) => {
@@ -388,246 +349,31 @@ export default function DashboardPage() {
 
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold">Semester Details</h2>
-          <Dialog open={isSemesterDialogOpen} onOpenChange={setIsSemesterDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><PlusCircle className="mr-2 h-4 w-4" /> Add Semester</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[450px] p-6">
-              <DialogHeader className="space-y-2">
-                <DialogTitle className="text-2xl font-bold text-center">
-                  Add New Semester
-                </DialogTitle>
-                <DialogDescription className="text-muted-foreground text-center">
-                  Enter the name for the new semester below.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddSemester} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="semesterName" className="text-sm font-medium">
-                    Semester Name
-                    <span className="text-red-500 ml-1">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="semesterName"
-                      value={semesterName}
-                      onChange={(e) => setSemesterName(e.target.value)}
-                      required
-                      placeholder="e.g., Fall 2024"
-                      className="pl-3"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setIsSemesterDialogOpen(false)}
-                    className="w-[48%] hover:bg-destructive/5 hover:text-destructive"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="w-[48%] flex items-center justify-center gap-2"
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    Add Semester
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <AddSemesterDialog onSemesterAdded={fetchData} />
         </div>
 
         <div className="grid gap-6 md:grid-cols-1">
           {semesters.map((semester) => (
-            <Card key={semester._id} className="transition-transform duration-300 ease-in-out hover:scale-105">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  {editingSemesterId === semester._id ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={newSemesterName}
-                        onChange={(e) => setNewSemesterName(e.target.value)}
-                        className="w-48"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleSaveSemesterName}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCancelEdit}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => toggleSemester(semester._id)}>
-                          <ChevronDown className={`h-5 w-5 transition-transform ${expandedSemesters.includes(semester._id) ? 'rotate-180' : ''}`} />
-                        </Button>
-                        <CardTitle>{semester.semesterName}</CardTitle>
-                      </div>
-                      <CardDescription>SGPA: {calculateSGPA(semester.courses)}</CardDescription>
-                    </>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {editingSemesterId !== semester._id && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditSemesterName(semester._id)}
-                    >
-                      Edit
-                    </Button>
-                  )}
-                  <Dialog open={isCourseDialogOpen && currentSemesterId === semester._id} onOpenChange={(isOpen) => { if (!isOpen) setCurrentSemesterId(null); setIsCourseDialogOpen(isOpen); }}>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setCurrentSemesterId(semester._id)}
-                        className="group"
-                      >
-                        <PlusCircle className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                        <span className="transition-colors group-hover:text-primary">Add Course</span>
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[450px] p-6">
-                      <DialogHeader className="space-y-2">
-                        <DialogTitle className="text-2xl font-bold text-center">
-                          Add New Course
-                        </DialogTitle>
-                        <DialogDescription className="text-muted-foreground text-center">
-                          Enter your course details below
-                        </DialogDescription>
-                      </DialogHeader>
-                      <form onSubmit={handleAddCourse} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="courseName" className="text-sm font-medium">
-                            Course Name
-                            <span className="text-red-500 ml-1">*</span>
-                          </Label>
-                          <div className="relative">
-                            <Input
-                              id="courseName"
-                              value={courseName}
-                              onChange={(e) => setCourseName(e.target.value)}
-                              required
-                              placeholder="e.g., Computer Science Fundamentals"
-                              className="pl-3"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="credits" className="text-sm font-medium">
-                            Credits
-                            <span className="text-red-500 ml-1">*</span>
-                          </Label>
-                          <div className="relative">
-                            <Input
-                              id="credits"
-                              type="number"
-                              value={credits}
-                              onChange={(e) => setCredits(e.target.value)}
-                              required
-                              min="1"
-                              max="5"
-                              className="w-24"
-                            />
-                            <p className="text-xs text-muted-foreground ml-2">
-                              {credits && credits !== '' ? `(${credits} credit${Number(credits) > 1 ? 's' : ''})` : ''}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="grade" className="text-sm font-medium">
-                            Grade
-                            <span className="text-red-500 ml-1">*</span>
-                          </Label>
-                          <Select
-                            onValueChange={setGrade}
-                            value={grade}
-                            required
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a grade" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(gradePoints).map(([grade, points]) => (
-                                <SelectItem key={grade} value={grade}>
-                                  <div className="flex items-center justify-between w-full">
-                                    <span>{grade}</span>
-                                    <span className="text-sm text-muted-foreground">{points} points</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setIsCourseDialogOpen(false)}
-                            className="w-[48%] hover:bg-destructive/5 hover:text-destructive"
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="submit"
-                            className="w-[48%] flex items-center justify-center gap-2"
-                          >
-                            <PlusCircle className="h-4 w-4" />
-                            Add Course
-                          </Button>
-                        </div>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                  <Button variant="destructive" size="icon" onClick={() => handleDeleteSemester(semester._id)}><Trash2 className="h-4 w-4" /></Button>
-                </div>
-              </CardHeader>
-              {expandedSemesters.includes(semester._id) && (
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Course Name</TableHead>
-                        <TableHead>Credits</TableHead>
-                        <TableHead>Grade</TableHead>
-                        <TableHead>Points</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {semester.courses.map((course) => (
-                        <TableRow key={course._id}>
-                          <TableCell>{course.courseName}</TableCell>
-                          <TableCell>{course.credits}</TableCell>
-                          <TableCell>{course.grade}</TableCell>
-                          <TableCell>{gradePoints[course.grade]}</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteCourse(semester._id, course._id)}><Trash2 className="h-4 w-4" /></Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              )}
-            </Card>
+            <SemesterCard
+              key={semester._id}
+              semester={semester}
+              isExpanded={expandedSemesters.includes(semester._id)}
+              isEditing={editingSemesterId === semester._id}
+              newSemesterName={newSemesterName}
+              setNewSemesterName={setNewSemesterName}
+              onToggleExpand={toggleSemester}
+              onSaveName={handleSaveSemesterName}
+              onCancelEdit={handleCancelEdit}
+              onEdit={() => handleEditSemesterName(semester._id)}
+              onDeleteSemester={handleDeleteSemester}
+              onDeleteCourse={handleDeleteCourse}
+              onCourseAdded={fetchData}
+              isCourseDialogOpen={isCourseDialogOpen && currentSemesterId === semester._id}
+              onCourseDialogOpenChange={(isOpen) => {
+                setCurrentSemesterId(isOpen ? semester._id : null);
+                setIsCourseDialogOpen(isOpen);
+              }}
+            />
           ))}
         </div>
       </main>
