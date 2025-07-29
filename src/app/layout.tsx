@@ -9,6 +9,9 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 export const metadata: Metadata = {
   title: 'CGPA Calculator',
   description: 'A simple CGPA calculator app',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
