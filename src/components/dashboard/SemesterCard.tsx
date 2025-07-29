@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChevronDown, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { AddCourseDialog } from './AddCourseDialog';
 import { gradePoints } from '@/lib/gradePoints';
 import { Semester } from '@/lib/types';
@@ -42,6 +43,10 @@ export function SemesterCard({
   isCourseDialogOpen,
   onCourseDialogOpenChange,
 }: SemesterCardProps) {
+  const totalCredits = semester.courses.reduce((acc, course) => acc + course.credits, 0);
+  const totalPoints = semester.courses.reduce((acc, course) => acc + gradePoints[course.grade] * course.credits, 0);
+  const sgpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : '0.00';
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between cursor-pointer" onClick={() => onToggleExpand(semester._id)}>
@@ -62,19 +67,33 @@ export function SemesterCard({
               </Button>
             </div>
           ) : (
-            <CardTitle>{semester.semesterName}</CardTitle>
+            <div className="flex items-center gap-4">
+              <CardTitle>{semester.semesterName}</CardTitle>
+              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">(SGPA: {sgpa})</span>
+            </div>
           )}
           <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
         </div>
         <div className="flex items-center gap-2">
           {!isEditing && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onEdit(semester._id, semester.semesterName); }}
-            >
-              Edit
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); onEdit(semester._id, semester.semesterName); }}
+              >
+                Edit
+              </Button>
+              <Link href={`/dashboard/preview?semesterId=${semester._id}`} passHref target="_blank">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Preview
+                </Button>
+              </Link>
+            </>
           )}
           <AddCourseDialog
             semesterId={semester._id}

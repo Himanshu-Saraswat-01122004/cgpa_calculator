@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/dbConnect';
@@ -16,6 +16,43 @@ interface Semester {
   _id: Types.ObjectId;
   semesterName: string;
   courses: Course[];
+}
+
+export async function GET(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user) {
+    return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+  }
+
+  await dbConnect();
+
+  try {
+    const user = await User.findById((session.user as { id: string }).id);
+    if (!user) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    const semesterId = request.nextUrl.searchParams.get('semesterId');
+
+    if (semesterId) {
+      const semester = user.semesters.find(
+        (s: Semester) => s._id.toString() === semesterId
+      );
+      if (!semester) {
+        return NextResponse.json({ message: 'Semester not found' }, { status: 404 });
+      }
+      return NextResponse.json(semester, { status: 200 });
+    } else {
+      return NextResponse.json(user.semesters, { status: 200 });
+    }
+  } catch (error) {
+    console.error('Failed to fetch semesters:', error);
+    return NextResponse.json(
+      { message: 'Failed to fetch semesters' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: Request) {
