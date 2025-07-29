@@ -1,11 +1,24 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import User from '@/models/User';
+import { Types } from 'mongoose';
+
+interface Course {
+  _id?: Types.ObjectId;
+  courseName: string;
+  credits: number;
+  grade: string;
+}
+
+interface Semester {
+  _id?: Types.ObjectId;
+  semesterName: string;
+  courses: Course[];
+}
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: Request
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -33,7 +46,7 @@ export async function PUT(
       );
     }
 
-    const semesterIndex = user.semesters.findIndex(s => s._id?.toString() === semesterId);
+    const semesterIndex = user.semesters.findIndex((s: Semester) => s._id?.toString() === semesterId);
     if (semesterIndex === -1) {
       return NextResponse.json(
         { error: 'Semester not found' },

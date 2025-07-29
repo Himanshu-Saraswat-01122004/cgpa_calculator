@@ -108,7 +108,7 @@ export default function Home() {
               <div className="p-6 bg-gray-800/50 rounded-lg text-center">
                 <Calculator className="h-12 w-12 mx-auto mb-4 text-primary" />
                 <h3 className="text-xl font-bold mb-2">Accurate Calculations</h3>
-                <p className="text-gray-400">Calculate your SGPA and CGPA with precision, based on your university's grading system.</p>
+                <p className="text-gray-400">Calculate your SGPA and CGPA with precision, based on your university&apos;s grading system.</p>
               </div>
               <div className="p-6 bg-gray-800/50 rounded-lg text-center">
                 <LayoutDashboard className="h-12 w-12 mx-auto mb-4 text-primary" />

@@ -84,7 +84,7 @@ export default function DashboardPage() {
         const data = await res.json();
         setSemesters(data.semesters || []);
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to update semester name');
     }
   };
@@ -112,7 +112,7 @@ export default function DashboardPage() {
       } else {
         toast.error('Failed to fetch data.');
       }
-    } catch (error) {
+    } catch {
       toast.error('An error occurred while fetching data.');
     } finally {
       setIsLoading(false);
