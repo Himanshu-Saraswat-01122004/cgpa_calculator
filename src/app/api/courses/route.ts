@@ -63,6 +63,56 @@ export async function POST(request: Request) {
   }
 }
 
+export async function PUT(request: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user) {
+    return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+  }
+
+  await dbConnect();
+
+  try {
+    const { semesterId, courseId, courseName, credits, grade } = await request.json();
+
+    const user = await User.findById((session.user as { id: string }).id);
+    if (!user) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    const semester = user.semesters.find(
+      (s: Semester) => s._id.toString() === semesterId
+    );
+
+    if (!semester) {
+      return NextResponse.json({ message: 'Semester not found' }, { status: 404 });
+    }
+
+    const course = semester.courses.find(
+      (c: Course) => c._id.toString() === courseId
+    );
+
+    if (!course) {
+      return NextResponse.json({ message: 'Course not found' }, { status: 404 });
+    }
+
+    // Update course properties
+    course.courseName = courseName;
+    course.credits = credits;
+    course.grade = grade;
+
+    await user.save();
+
+    return NextResponse.json(course, { status: 200 });
+  } catch (error) {
+    console.error('Failed to update course:', error);
+    return NextResponse.json(
+      { message: 'Failed to update course' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: Request) {
   const session = await getServerSession(authOptions);
 

@@ -1,14 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronDown, Trash2 } from 'lucide-react';
+import { ChevronDown, Trash2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { AddCourseDialog } from './AddCourseDialog';
+import { EditCourseDialog } from './EditCourseDialog';
 import { gradePoints } from '@/lib/gradePoints';
-import { Semester } from '@/lib/types';
+import { Semester, Course } from '@/lib/types';
 
 interface SemesterCardProps {
   semester: Semester;
@@ -20,7 +22,7 @@ interface SemesterCardProps {
   onSaveName: () => void;
   onCancelEdit: () => void;
   onEdit: (id: string, name: string) => void;
-  onDeleteSemester: (id:string) => void;
+  onDeleteSemester: (id: string) => void;
   onDeleteCourse: (semesterId: string, courseId: string) => void;
   onCourseAdded: () => void;
   isCourseDialogOpen: boolean;
@@ -43,9 +45,23 @@ export function SemesterCard({
   isCourseDialogOpen,
   onCourseDialogOpenChange,
 }: SemesterCardProps) {
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
   const totalCredits = semester.courses.reduce((acc, course) => acc + course.credits, 0);
   const totalPoints = semester.courses.reduce((acc, course) => acc + gradePoints[course.grade] * course.credits, 0);
   const sgpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : '0.00';
+
+  const handleEditCourse = (course: Course) => {
+    setEditingCourse(course);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleCourseUpdated = () => {
+    setIsEditDialogOpen(false);
+    setEditingCourse(null);
+    onCourseAdded(); // Reuse the same callback to refresh data
+  };
 
   return (
     <Card>
@@ -125,13 +141,39 @@ export function SemesterCard({
                   <TableCell>{course.grade}</TableCell>
                   <TableCell>{gradePoints[course.grade]}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => onDeleteCourse(semester._id, course._id)}><Trash2 className="h-4 w-4" /></Button>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditCourse(course)}
+                        title="Edit course"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDeleteCourse(semester._id, course._id)}
+                        title="Delete course"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </CardContent>
+      )}
+      {editingCourse && (
+        <EditCourseDialog
+          semesterId={semester._id}
+          course={editingCourse}
+          onCourseUpdated={handleCourseUpdated}
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+        />
       )}
     </Card>
   );
