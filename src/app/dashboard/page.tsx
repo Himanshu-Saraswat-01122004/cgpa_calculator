@@ -244,13 +244,13 @@ export default function DashboardPage() {
                 <AreaChart data={sgpaData}>
                   <defs>
                     <linearGradient id="sgpaGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0}/>
+                      <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="name" stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} domain={[0, 10]} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: chartColors.tooltipBg,
