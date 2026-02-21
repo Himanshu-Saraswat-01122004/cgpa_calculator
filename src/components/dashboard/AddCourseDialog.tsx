@@ -99,7 +99,7 @@ export function AddCourseDialog({ semesterId, semesterName, onCourseAdded, isOpe
                 onChange={(e) => setCredits(e.target.value)}
                 required
                 min="1"
-                max="5"
+                max="8"
                 className="w-24"
               />
               <p className="text-xs text-muted-foreground ml-2">
