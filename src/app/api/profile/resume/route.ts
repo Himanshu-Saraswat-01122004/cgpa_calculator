@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/dbConnect';
-import mongoose from 'mongoose';
 import User from '@/models/User';
 
 // Allow up to 5 MB request body for base64-encoded PDF

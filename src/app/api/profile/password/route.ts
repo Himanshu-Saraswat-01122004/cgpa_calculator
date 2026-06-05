@@ -28,6 +28,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
+    if (!user.password) {
+      return NextResponse.json({ message: 'No password set for this account (logged in via OAuth)' }, { status: 400 });
+    }
+
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return NextResponse.json({ message: 'Current password is incorrect' }, { status: 400 });

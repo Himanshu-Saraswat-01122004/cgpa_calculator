@@ -13,7 +13,7 @@ interface Course {
 }
 
 interface Semester {
-  _id: Types.ObjectId;
+  _id?: Types.ObjectId;
   semesterName: string;
   courses: Course[];
 }
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     if (semesterId) {
       const semester = user.semesters.find(
-        (s: Semester) => s._id.toString() === semesterId
+        (s: Semester) => s._id?.toString() === semesterId
       );
       if (!semester) {
         return NextResponse.json({ message: 'Semester not found' }, { status: 404 });
@@ -109,7 +109,7 @@ export async function DELETE(request: Request) {
     }
 
     const semesterIndex = user.semesters.findIndex(
-      (semester: Semester) => semester._id.toString() === semesterId
+      (semester: Semester) => semester._id?.toString() === semesterId
     );
 
     if (semesterIndex === -1) {

@@ -23,7 +23,7 @@ export const authOptions: AuthOptions = {
         const user = await User.findOne({ email: credentials.email });
 
         if (user && user.password && bcrypt.compareSync(credentials.password, user.password)) {
-          return { id: user._id.toString(), email: user.email, name: user.name };
+          return { id: (user._id as { toString(): string }).toString(), email: user.email, name: user.name };
         } else {
           return null;
         }

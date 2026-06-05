@@ -378,7 +378,10 @@ export default function ProfilePage() {
               {/* Avatar */}
               <div className="relative group">
                 {picture
-                  ? <img src={picture} alt="avatar" className="h-24 w-24 rounded-full object-cover" style={{ border: `3px solid ${cgpaColor}` }} />
+                  ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={picture} alt="avatar" className="h-24 w-24 rounded-full object-cover" style={{ border: `3px solid ${cgpaColor}` }} />
+                  )
                   : (
                     <div className="h-24 w-24 rounded-full flex items-center justify-center text-4xl font-bold text-white"
                       style={{ background: '#6366f1', border: `3px solid ${cgpaColor}` }}>
@@ -400,7 +403,7 @@ export default function ProfilePage() {
               {/* Bio snippet if filled */}
               {bio && (
                 <p className="text-xs text-muted-foreground italic max-w-full px-2 line-clamp-3">
-                  "{bio}"
+                  &quot;{bio}&quot;
                 </p>
               )}
 

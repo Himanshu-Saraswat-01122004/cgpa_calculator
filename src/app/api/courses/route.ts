@@ -6,14 +6,14 @@ import User from '@/models/User';
 import mongoose, { Types } from 'mongoose';
 
 interface Course {
-  _id: Types.ObjectId;
+  _id?: Types.ObjectId;
   courseName: string;
   credits: number;
   grade: string;
 }
 
 interface Semester {
-  _id: Types.ObjectId;
+  _id?: Types.ObjectId;
   semesterName: string;
   courses: Course[];
 }
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     const semester = user.semesters.find(
-      (s: Semester) => s._id.toString() === semesterId
+      (s: Semester) => s._id?.toString() === semesterId
     );
 
     if (!semester) {
@@ -81,7 +81,7 @@ export async function PUT(request: Request) {
     }
 
     const semester = user.semesters.find(
-      (s: Semester) => s._id.toString() === semesterId
+      (s: Semester) => s._id?.toString() === semesterId
     );
 
     if (!semester) {
@@ -89,7 +89,7 @@ export async function PUT(request: Request) {
     }
 
     const course = semester.courses.find(
-      (c: Course) => c._id.toString() === courseId
+      (c: Course) => c._id?.toString() === courseId
     );
 
     if (!course) {
@@ -131,7 +131,7 @@ export async function DELETE(request: Request) {
     }
 
     const semester = user.semesters.find(
-      (s: Semester) => s._id.toString() === semesterId
+      (s: Semester) => s._id?.toString() === semesterId
     );
 
     if (!semester) {
@@ -139,7 +139,7 @@ export async function DELETE(request: Request) {
     }
 
     const courseIndex = semester.courses.findIndex(
-      (c: Course) => c._id.toString() === courseId
+      (c: Course) => c._id?.toString() === courseId
     );
 
     if (courseIndex === -1) {

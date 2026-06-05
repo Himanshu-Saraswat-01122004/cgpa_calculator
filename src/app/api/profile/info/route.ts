@@ -65,7 +65,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: 'Image too large (max ~500 KB)' }, { status: 400 });
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, string | number | string[] | undefined> = {};
     if (college !== undefined) updateData.college = college;
     if (department !== undefined) updateData.department = department;
     if (rollNumber !== undefined) updateData.rollNumber = rollNumber;
