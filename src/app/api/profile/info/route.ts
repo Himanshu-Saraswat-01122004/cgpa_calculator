@@ -11,7 +11,7 @@ export async function GET() {
 
   await dbConnect();
   const user = await User.findOne({ email: session.user.email }).select(
-    'name email college department rollNumber batch profilePicture'
+    'name email college department rollNumber batch profilePicture targetCGPA targetSemester bio linkedin github leetcode skills'
   );
   if (!user) return NextResponse.json({ message: 'User not found' }, { status: 404 });
 
@@ -23,6 +23,13 @@ export async function GET() {
     rollNumber:     user.rollNumber     || '',
     batch:          user.batch          || '',
     profilePicture: user.profilePicture || '',
+    targetCGPA:     user.targetCGPA !== undefined ? user.targetCGPA : 8.0,
+    targetSemester: user.targetSemester !== undefined ? user.targetSemester : 8,
+    bio:            user.bio            || '',
+    linkedin:       user.linkedin       || '',
+    github:         user.github         || '',
+    leetcode:       user.leetcode       || '',
+    skills:         user.skills         || [],
   });
 }
 
@@ -34,7 +41,20 @@ export async function PATCH(request: Request) {
   await dbConnect();
 
   try {
-    const { college, department, rollNumber, batch, profilePicture } = await request.json();
+    const {
+      college,
+      department,
+      rollNumber,
+      batch,
+      profilePicture,
+      targetCGPA,
+      targetSemester,
+      bio,
+      linkedin,
+      github,
+      leetcode,
+      skills,
+    } = await request.json();
 
     // Guard: profile picture must be a data URL or empty string
     if (profilePicture && !profilePicture.startsWith('data:image/')) {
@@ -45,9 +65,23 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: 'Image too large (max ~500 KB)' }, { status: 400 });
     }
 
+    const updateData: any = {};
+    if (college !== undefined) updateData.college = college;
+    if (department !== undefined) updateData.department = department;
+    if (rollNumber !== undefined) updateData.rollNumber = rollNumber;
+    if (batch !== undefined) updateData.batch = batch;
+    if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+    if (targetCGPA !== undefined) updateData.targetCGPA = Number(targetCGPA);
+    if (targetSemester !== undefined) updateData.targetSemester = Number(targetSemester);
+    if (bio !== undefined) updateData.bio = bio;
+    if (linkedin !== undefined) updateData.linkedin = linkedin;
+    if (github !== undefined) updateData.github = github;
+    if (leetcode !== undefined) updateData.leetcode = leetcode;
+    if (skills !== undefined) updateData.skills = skills;
+
     await User.findOneAndUpdate(
       { email: session.user.email },
-      { $set: { college, department, rollNumber, batch, profilePicture } },
+      { $set: updateData },
       { new: true }
     );
 

@@ -25,6 +25,14 @@ export interface IUser extends Document {
     // Resume (base64 PDF)
     resume?:         string;
     resumeName?:     string;
+    // New fields
+    targetCGPA?:     number;
+    targetSemester?: number;
+    bio?:            string;
+    linkedin?:       string;
+    github?:         string;
+    leetcode?:       string;
+    skills?:         string[];
     semesters: {
         _id?:         mongoose.Types.ObjectId;
         semesterName: string;
@@ -48,6 +56,13 @@ const UserSchema: Schema = new Schema({
     profilePicture: { type: String, default: '' },
     resume:         { type: String, default: '' },
     resumeName:     { type: String, default: '' },
+    targetCGPA:     { type: Number, default: 8.0 },
+    targetSemester: { type: Number, default: 8 },
+    bio:            { type: String, default: '' },
+    linkedin:       { type: String, default: '' },
+    github:         { type: String, default: '' },
+    leetcode:       { type: String, default: '' },
+    skills:         { type: [String], default: [] },
     semesters:      [SemesterSchema],
 });
 // Force re-registration so new fields (resume, resumeName) are always picked up

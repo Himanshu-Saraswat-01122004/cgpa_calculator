@@ -11,7 +11,8 @@ import {
   Eye, EyeOff, Calculator, ArrowLeft, Lock,
   BookOpen, Star, ClipboardList, Camera, Building2, Save,
   ChevronDown, GraduationCap, Award, Hash, CheckCircle2, XCircle,
-  FileText, Upload, Trash2, ExternalLink,
+  FileText, Upload, Trash2, ExternalLink, Link2, Github, Linkedin,
+  Download, Plus
 } from 'lucide-react';
 import { gradePoints } from '@/lib/gradePoints';
 import { Semester, Course } from '@/lib/types';
@@ -74,24 +75,43 @@ export default function ProfilePage() {
   const [loadingData, setLoadingData] = useState(true);
   const [infoFetched, setInfoFetched] = useState(false);
 
+  // College Info
   const [college, setCollege] = useState('');
   const [department, setDepartment] = useState('');
   const [rollNumber, setRollNumber] = useState('');
   const [batch, setBatch] = useState('');
   const [infoLoading, setInfoLoading] = useState(false);
 
+  // Profile Picture
   const [picture, setPicture] = useState('');
   const [picUploading, setPicUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Collapsible Accordions
+  const [showCollegeForm, setShowCollegeForm] = useState(false);
+  const [showLinksForm, setShowLinksForm] = useState(false);
   const [showPw, setShowPw] = useState(false);
 
+  // Bio & Social Links
+  const [bio, setBio] = useState('');
+  const [linkedin, setLinkedin] = useState('');
+  const [github, setGithub] = useState('');
+  const [leetcode, setLeetcode] = useState('');
+
+
+
+  // Skills
+  const [skills, setSkills] = useState<string[]>([]);
+  const [newSkill, setNewSkill] = useState('');
+
   // Resume
-  const [resume,         setResume        ] = useState('');
-  const [resumeName,     setResumeName    ] = useState('');
-  const [resumeUploading,setResumeUploading] = useState(false);
-  const [showPreview,    setShowPreview   ] = useState(false);
+  const [resume, setResume] = useState('');
+  const [resumeName, setResumeName] = useState('');
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const resumeRef = useRef<HTMLInputElement>(null);
+
+  // Change Password
   const [curPw, setCurPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [conPw, setConPw] = useState('');
@@ -103,16 +123,39 @@ export default function ProfilePage() {
   useEffect(() => {
     if (status === 'unauthenticated') { router.push('/login'); return; }
     if (status !== 'authenticated') return;
-    fetch('/api/data').then(r => r.json()).then(d => { setSemesters(d.semesters || []); setLoadingData(false); }).catch(() => setLoadingData(false));
-    fetch('/api/profile/info').then(r => r.json()).then(d => {
-      setCollege(d.college || ''); setDepartment(d.department || '');
-      setRollNumber(d.rollNumber || ''); setBatch(d.batch || '');
-      setPicture(d.profilePicture || ''); setInfoFetched(true);
-    }).catch(() => setInfoFetched(true));
-    // Resume
-    fetch('/api/profile/resume').then(r => r.json()).then(d => {
-      setResume(d.resume || ''); setResumeName(d.resumeName || '');
-    }).catch(() => {});
+
+    fetch('/api/data')
+      .then(r => r.json())
+      .then(d => {
+        setSemesters(d.semesters || []);
+        setLoadingData(false);
+      })
+      .catch(() => setLoadingData(false));
+
+    fetch('/api/profile/info')
+      .then(r => r.json())
+      .then(d => {
+        setCollege(d.college || '');
+        setDepartment(d.department || '');
+        setRollNumber(d.rollNumber || '');
+        setBatch(d.batch || '');
+        setPicture(d.profilePicture || '');
+        setBio(d.bio || '');
+        setLinkedin(d.linkedin || '');
+        setGithub(d.github || '');
+        setLeetcode(d.leetcode || '');
+        setSkills(d.skills || []);
+        setInfoFetched(true);
+      })
+      .catch(() => setInfoFetched(true));
+
+    fetch('/api/profile/resume')
+      .then(r => r.json())
+      .then(d => {
+        setResume(d.resume || '');
+        setResumeName(d.resumeName || '');
+      })
+      .catch(() => {});
   }, [status, router]);
 
   const calcSGPA = (courses: Course[]) => {
@@ -121,13 +164,29 @@ export default function ProfilePage() {
     const crs = courses.reduce((a, c) => a + c.credits, 0);
     return crs > 0 ? pts / crs : 0;
   };
-  const all          = useMemo(() => semesters.flatMap(s => s.courses), [semesters]);
-  const cgpa         = useMemo(() => calcSGPA(all).toFixed(2), [all]);
-  const totalCreds   = useMemo(() => all.reduce((a, c) => a + c.credits, 0), [all]);
-  const bestSGPA     = useMemo(() => !semesters.length ? '—' : Math.max(...semesters.map(s => calcSGPA(s.courses))).toFixed(2), [semesters]);
-  const cgpaNum      = parseFloat(cgpa);
-  const cgpaColor    = cgpaNum >= 9 ? '#10b981' : cgpaNum >= 8 ? '#6366f1' : cgpaNum >= 7 ? '#8b5cf6' : cgpaNum >= 5.5 ? '#f59e0b' : '#f87171';
-  const cgpaLabel    = cgpaNum >= 9 ? 'Outstanding' : cgpaNum >= 8 ? 'Excellent' : cgpaNum >= 7 ? 'Good' : cgpaNum >= 5.5 ? 'Average' : cgpaNum > 0 ? 'Needs Work' : '—';
+
+  const all = useMemo(() => semesters.flatMap(s => s.courses), [semesters]);
+  const cgpa = useMemo(() => calcSGPA(all).toFixed(2), [all]);
+  const totalCreds = useMemo(() => all.reduce((a, c) => a + c.credits, 0), [all]);
+  
+  const bestSem = useMemo(() => {
+    if (!semesters.length) return null;
+    return semesters.reduce((best, s) => calcSGPA(s.courses) >= calcSGPA(best.courses) ? s : best);
+  }, [semesters]);
+
+  const worstSem = useMemo(() => {
+    if (!semesters.length) return null;
+    return semesters.reduce((worst, s) => calcSGPA(s.courses) <= calcSGPA(worst.courses) ? s : worst);
+  }, [semesters]);
+
+  const bestSGPA = useMemo(() => bestSem ? calcSGPA(bestSem.courses).toFixed(2) : '—', [bestSem]);
+  const worstSGPA = useMemo(() => worstSem ? calcSGPA(worstSem.courses).toFixed(2) : '—', [worstSem]);
+
+  const cgpaNum = parseFloat(cgpa);
+  const cgpaColor = cgpaNum >= 9 ? '#10b981' : cgpaNum >= 8 ? '#6366f1' : cgpaNum >= 7 ? '#8b5cf6' : cgpaNum >= 5.5 ? '#f59e0b' : '#f87171';
+  const cgpaLabel = cgpaNum >= 9 ? 'Outstanding' : cgpaNum >= 8 ? 'Excellent' : cgpaNum >= 7 ? 'Good' : cgpaNum >= 5.5 ? 'Average' : cgpaNum > 0 ? 'Needs Work' : '—';
+
+
 
   const handlePic = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -136,19 +195,82 @@ export default function ProfilePage() {
     try {
       const b64 = await resizeImage(file);
       setPicture(b64);
-      const res = await fetch('/api/profile/info', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ college, department, rollNumber, batch, profilePicture: b64 }) });
+      const res = await fetch('/api/profile/info', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ college, department, rollNumber, batch, profilePicture: b64, bio, linkedin, github, leetcode, skills })
+      });
       if (res.ok) toast.success('Photo updated!'); else toast.error('Save failed');
-    } catch { toast.error('Could not process image'); }
-    finally { setPicUploading(false); }
+    } catch {
+      toast.error('Could not process image');
+    } finally {
+      setPicUploading(false);
+    }
   };
 
-  const handleInfo = async (e: React.FormEvent) => {
-    e.preventDefault(); setInfoLoading(true);
+  const handleInfoUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInfoLoading(true);
     try {
-      const res = await fetch('/api/profile/info', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ college, department, rollNumber, batch, profilePicture: picture }) });
-      if (res.ok) toast.success('Saved!'); else toast.error('Save failed');
-    } catch { toast.error('Error'); }
-    finally { setInfoLoading(false); }
+      const res = await fetch('/api/profile/info', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          college,
+          department,
+          rollNumber,
+          batch,
+          profilePicture: picture,
+          bio,
+          linkedin,
+          github,
+          leetcode,
+          skills
+        })
+      });
+      if (res.ok) {
+        toast.success('Profile updated successfully!');
+        setShowCollegeForm(false);
+        setShowLinksForm(false);
+      } else {
+        toast.error('Failed to save settings.');
+      }
+    } catch {
+      toast.error('An error occurred.');
+    } finally {
+      setInfoLoading(false);
+    }
+  };
+
+  const handleAddSkill = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = newSkill.trim();
+    if (!clean) return;
+    if (skills.includes(clean)) { toast.error('Skill already exists.'); return; }
+    if (skills.length >= 20) { toast.error('Maximum of 20 skills allowed.'); return; }
+    
+    const updated = [...skills, clean];
+    setSkills(updated);
+    setNewSkill('');
+    
+    // Save to DB
+    fetch('/api/profile/info', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ college, department, rollNumber, batch, profilePicture: picture, bio, linkedin, github, leetcode, skills: updated })
+    }).catch(() => {});
+  };
+
+  const handleRemoveSkill = (skillToRemove: string) => {
+    const updated = skills.filter(s => s !== skillToRemove);
+    setSkills(updated);
+    
+    // Save to DB
+    fetch('/api/profile/info', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ college, department, rollNumber, batch, profilePicture: picture, bio, linkedin, github, leetcode, skills: updated })
+    }).catch(() => {});
   };
 
   const handlePwChange = async (e: React.FormEvent) => {
@@ -157,22 +279,68 @@ export default function ProfilePage() {
     if (newPw.length < 8) { toast.error('Minimum 8 characters'); return; }
     setPwLoading(true);
     try {
-      const res = await fetch('/api/profile/password', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: curPw, newPassword: newPw }) });
+      const res = await fetch('/api/profile/password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: curPw, newPassword: newPw })
+      });
       const d = await res.json();
-      if (res.ok) { toast.success('Password updated!'); setCurPw(''); setNewPw(''); setConPw(''); setShowPw(false); }
-      else toast.error(d.message || 'Failed');
-    } catch { toast.error('Error'); }
-    finally { setPwLoading(false); }
+      if (res.ok) {
+        toast.success('Password updated!');
+        setCurPw('');
+        setNewPw('');
+        setConPw('');
+        setShowPw(false);
+      } else {
+        toast.error(d.message || 'Failed');
+      }
+    } catch {
+      toast.error('Error');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (!semesters.length) return;
+    let csvContent = 'data:text/csv;charset=utf-8,';
+    csvContent += 'Semester,Course Name,Credits,Grade,Points\n';
+    
+    semesters.forEach(sem => {
+      sem.courses.forEach(course => {
+        const row = [
+          sem.semesterName,
+          course.courseName,
+          course.credits,
+          course.grade,
+          gradePoints[course.grade] || 0
+        ].join(',');
+        csvContent += row + '\n';
+      });
+      // SGPA row
+      csvContent += `${sem.semesterName} Summary,,SGPA,${calcSGPA(sem.courses).toFixed(2)},\n\n`;
+    });
+
+    csvContent += `Overall CGPA,,,${cgpaNum.toFixed(2)},\n`;
+    csvContent += `Total Credits,,,${totalCreds},\n`;
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `${name.toLowerCase().replace(/\s+/g, '_')}_transcript.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (status === 'loading' || loadingData || !infoFetched) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><div className="spinner" /></div>;
   }
 
-  const name    = session?.user?.name  || 'Student';
-  const email   = session?.user?.email || '';
+  const name = session?.user?.name || 'Student';
+  const email = session?.user?.email || '';
   const initial = name.charAt(0).toUpperCase();
-  const iC = 'input-clean h-10 rounded-md border text-sm text-foreground placeholder:text-muted-foreground';
+  const iC = 'input-clean h-10 rounded-md border text-sm text-foreground placeholder:text-muted-foreground w-full px-3';
   const iS = { background: 'var(--surface-3)', borderColor: 'var(--border-default)' };
 
   const gradeColor: Record<string, string> = { O:'#10b981','A+':'#22c55e',A:'#6366f1','B+':'#8b5cf6',B:'#06b6d4',C:'#f59e0b',D:'#f97316',F:'#f87171' };
@@ -229,12 +397,42 @@ export default function ProfilePage() {
                 <p className="text-xs text-muted-foreground mt-0.5">{email}</p>
               </div>
 
-              {/* CGPA pill — always on dark surface, clearly readable */}
+              {/* Bio snippet if filled */}
+              {bio && (
+                <p className="text-xs text-muted-foreground italic max-w-full px-2 line-clamp-3">
+                  "{bio}"
+                </p>
+              )}
+
+              {/* CGPA pill */}
               <div className="w-full rounded-lg py-3 px-4" style={{ background: 'var(--surface-3)', border: `1px solid ${cgpaColor}40` }}>
                 <p className="text-xs text-muted-foreground mb-1">Overall CGPA</p>
                 <p className="text-4xl font-bold" style={{ color: cgpaColor }}>{cgpa}</p>
                 <p className="text-xs font-medium mt-1" style={{ color: cgpaColor }}>{cgpaLabel}</p>
               </div>
+
+
+
+              {/* Social links indicators */}
+              {(linkedin || github || leetcode) && (
+                <div className="flex gap-2.5 justify-center mt-1">
+                  {linkedin && (
+                    <a href={linkedin.startsWith('http') ? linkedin : `https://linkedin.com/in/${linkedin}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-blue-500 transition-colors">
+                      <Linkedin className="h-4 w-4" />
+                    </a>
+                  )}
+                  {github && (
+                    <a href={github.startsWith('http') ? github : `https://github.com/${github}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                      <Github className="h-4 w-4" />
+                    </a>
+                  )}
+                  {leetcode && (
+                    <a href={leetcode.startsWith('http') ? leetcode : `https://leetcode.com/${leetcode}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-orange-500 transition-colors">
+                      <Link2 className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* Meta pills */}
               <div className="w-full space-y-2">
@@ -274,11 +472,28 @@ export default function ProfilePage() {
             {semesters.length > 0 && (
               <div className="card rounded-xl p-5">
                 <p className="text-sm font-semibold text-foreground mb-4">Semester Performance</p>
+                
+                {/* Best / Worst highlight callouts */}
+                {semesters.length > 1 && bestSem && worstSem && bestSem._id !== worstSem._id && (
+                  <div className="grid grid-cols-2 gap-3 mb-5">
+                    <div className="rounded-lg p-3 border" style={{ background: 'rgba(16,185,129,0.06)', borderColor: 'rgba(16,185,129,0.2)' }}>
+                      <p className="text-xs font-semibold text-emerald-400 mb-1 flex items-center gap-1">🏆 Best Semester</p>
+                      <p className="text-sm font-bold text-foreground truncate">{bestSem.semesterName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">SGPA: {bestSGPA}</p>
+                    </div>
+                    <div className="rounded-lg p-3 border" style={{ background: 'rgba(248,113,113,0.06)', borderColor: 'rgba(248,113,113,0.2)' }}>
+                      <p className="text-xs font-semibold text-red-400 mb-1 flex items-center gap-1">📉 Worst Semester</p>
+                      <p className="text-sm font-bold text-foreground truncate">{worstSem.semesterName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">SGPA: {worstSGPA}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   {semesters.map(s => {
                     const sg = calcSGPA(s.courses);
                     const pct = (sg / 10) * 100;
-                    const col = sg >= 8.5 ? '#34d399' : sg >= 7 ? '#6366f1' : sg >= 5.5 ? '#f59e0b' : '#f87171';
+                    const col = sg >= 8.5 ? '#10b981' : sg >= 7 ? '#6366f1' : sg >= 5.5 ? '#f59e0b' : '#f87171';
                     return (
                       <div key={s._id} className="flex items-center gap-3">
                         <span className="text-xs text-muted-foreground truncate w-32 flex-shrink-0">{s.semesterName}</span>
@@ -316,35 +531,131 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* College info */}
+
+
+            {/* Links & Bio accordion */}
+            <div className="card rounded-xl overflow-hidden">
+              <button onClick={() => setShowLinksForm(!showLinksForm)}
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ background: 'rgba(99,102,241,0.12)' }}>
+                    <Link2 className="h-4 w-4 text-indigo-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-foreground">Links &amp; Identity</p>
+                    <p className="text-xs text-muted-foreground">LinkedIn, GitHub, LeetCode, Bio</p>
+                  </div>
+                </div>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showLinksForm ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showLinksForm && (
+                <div className="px-5 pb-5 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                  <form onSubmit={handleInfoUpdate} className="pt-4 space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-foreground">Short Bio (Max 300 characters)</Label>
+                      <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Write 2-3 lines about yourself..." maxLength={300} className="w-full min-h-[80px] p-2.5 rounded-md border text-sm text-foreground placeholder:text-muted-foreground resize-y" style={{ background: 'var(--surface-3)', borderColor: 'var(--border-default)' }} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-foreground">LinkedIn username/URL</Label>
+                      <Input value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="e.g. linkedin.com/in/username" className={iC} style={iS} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-foreground">GitHub username/URL</Label>
+                      <Input value={github} onChange={e => setGithub(e.target.value)} placeholder="e.g. github.com/username" className={iC} style={iS} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-foreground">LeetCode username/URL</Label>
+                      <Input value={leetcode} onChange={e => setLeetcode(e.target.value)} placeholder="e.g. leetcode.com/username" className={iC} style={iS} />
+                    </div>
+                    <div className="flex justify-end">
+                      <button type="submit" disabled={infoLoading} className="btn-primary rounded-md px-5 py-2 text-sm flex items-center gap-1.5">
+                        {infoLoading ? <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <Save className="h-4 w-4" />}
+                        Save Links
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+
+            {/* Skills chip management card */}
             <div className="card rounded-xl p-5">
-              <p className="text-sm font-semibold text-foreground mb-1">College Information</p>
-              <p className="text-xs text-muted-foreground mb-5">Shown on your grade preview reports</p>
-              <form onSubmit={handleInfo} className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-foreground">College / University</Label>
-                  <Input value={college} onChange={e => setCollege(e.target.value)} placeholder="e.g. IIIT Sri City" disabled={infoLoading} className={iC} style={iS} />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-foreground">Department / Branch</Label>
-                    <Input value={department} onChange={e => setDepartment(e.target.value)} placeholder="e.g. Computer Science" disabled={infoLoading} className={iC} style={iS} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-foreground">Roll Number</Label>
-                    <Input value={rollNumber} onChange={e => setRollNumber(e.target.value)} placeholder="e.g. CS22B1001" disabled={infoLoading} className={iC} style={iS} />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-foreground">Batch / Year</Label>
-                  <Input value={batch} onChange={e => setBatch(e.target.value)} placeholder="e.g. 2022 – 2026" disabled={infoLoading} className={iC} style={iS} />
-                </div>
-                <div className="flex justify-end">
-                  <button type="submit" disabled={infoLoading} className="btn-primary rounded-md px-5 py-2 text-sm">
-                    {infoLoading ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /><span>Saving…</span></> : <><Save className="h-4 w-4" /><span>Save</span></>}
-                  </button>
-                </div>
+              <p className="text-sm font-semibold text-foreground mb-1">Skills &amp; Expertise</p>
+              <p className="text-xs text-muted-foreground mb-4">Add skills like Python, DSA, ML etc. (Max 20)</p>
+              
+              <form onSubmit={handleAddSkill} className="flex gap-2 mb-4">
+                <Input value={newSkill} onChange={e => setNewSkill(e.target.value)} placeholder="Add a skill tag..." className={iC} style={iS} />
+                <button type="submit" className="btn-primary rounded-md px-4 py-2 text-sm flex items-center gap-1.5">
+                  <Plus className="h-4 w-4" /> Add
+                </button>
               </form>
+
+              {skills.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {skills.map(s => (
+                    <div key={s} className="flex items-center gap-1 text-xs font-medium rounded-full pl-3 pr-2 py-1 border"
+                      style={{ background: 'rgba(99,102,241,0.06)', borderColor: 'rgba(99,102,241,0.2)', color: '#818cf8' }}>
+                      <span>{s}</span>
+                      <button type="button" onClick={() => handleRemoveSkill(s)} className="text-indigo-400 hover:text-red-400 transition-colors p-0.5 rounded-full hover:bg-indigo-500/10">
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No skills added yet.</p>
+              )}
+            </div>
+
+            {/* College info */}
+            <div className="card rounded-xl overflow-hidden">
+              <button onClick={() => setShowCollegeForm(!showCollegeForm)}
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ background: 'rgba(99,102,241,0.12)' }}>
+                    <Building2 className="h-4 w-4 text-indigo-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-foreground">College Information</p>
+                    <p className="text-xs text-muted-foreground">
+                      {college ? `${college}` : 'Shown on your grade preview reports'}
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showCollegeForm ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showCollegeForm && (
+                <div className="px-5 pb-5 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                  <form onSubmit={handleInfoUpdate} className="pt-4 space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-foreground">College / University</Label>
+                      <Input value={college} onChange={e => setCollege(e.target.value)} placeholder="e.g. IIIT Sri City" disabled={infoLoading} className={iC} style={iS} />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-foreground">Department / Branch</Label>
+                        <Input value={department} onChange={e => setDepartment(e.target.value)} placeholder="e.g. Computer Science" disabled={infoLoading} className={iC} style={iS} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-foreground">Roll Number</Label>
+                        <Input value={rollNumber} onChange={e => setRollNumber(e.target.value)} placeholder="e.g. CS22B1001" disabled={infoLoading} className={iC} style={iS} />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-foreground">Batch / Year</Label>
+                      <Input value={batch} onChange={e => setBatch(e.target.value)} placeholder="e.g. 2022 – 2026" disabled={infoLoading} className={iC} style={iS} />
+                    </div>
+                    <div className="flex justify-end">
+                      <button type="submit" disabled={infoLoading} className="btn-primary rounded-md px-5 py-2 text-sm flex items-center gap-1.5">
+                        {infoLoading ? <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <Save className="h-4 w-4" />}
+                        Save Details
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
 
             {/* Resume upload */}
@@ -428,9 +739,27 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            {/* Export Card */}
+            {semesters.length > 0 && (
+              <div className="card rounded-xl p-5 space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Export Academic Record</p>
+                  <p className="text-xs text-muted-foreground">Download or preview your transcript and grades</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button onClick={handleExportCSV} className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-emerald-400 transition-colors hover:bg-emerald-400/10 border border-emerald-400/30">
+                    <Download className="h-4 w-4" /> Export CSV
+                  </button>
+                  <Link href="/dashboard/preview" target="_blank" className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-indigo-400 transition-colors hover:bg-indigo-400/10 border border-indigo-400/30">
+                    <ExternalLink className="h-4 w-4" /> Print PDF
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* Change password — toggle */}
             <div className="card rounded-xl overflow-hidden">
-              <button onClick={() => setShowPw(v => !v)}
+              <button onClick={() => setShowPw(!showPw)}
                 className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ background: 'rgba(99,102,241,0.12)' }}>
@@ -448,9 +777,9 @@ export default function ProfilePage() {
                 <div className="px-5 pb-5 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                   <form onSubmit={handlePwChange} className="pt-4 space-y-3">
                     {([
-                      { id: 'cur', label: 'Current Password', val: curPw, set: setCurPw, show: showCur, toggle: () => setShowCur(v => !v) },
-                      { id: 'new', label: 'New Password',     val: newPw, set: setNewPw, show: showNew, toggle: () => setShowNew(v => !v) },
-                      { id: 'con', label: 'Confirm Password', val: conPw, set: setConPw, show: showCon, toggle: () => setShowCon(v => !v) },
+                      { id: 'cur', label: 'Current Password', val: curPw, set: setCurPw, show: showCur, toggle: () => setShowCur(!showCur) },
+                      { id: 'new', label: 'New Password',     val: newPw, set: setNewPw, show: showNew, toggle: () => setShowNew(!showNew) },
+                      { id: 'con', label: 'Confirm Password', val: conPw, set: setConPw, show: showCon, toggle: () => setShowCon(!showCon) },
                     ] as const).map(f => (
                       <div key={f.id} className="space-y-1.5">
                         <Label className="text-xs font-medium text-foreground">{f.label}</Label>
@@ -473,7 +802,7 @@ export default function ProfilePage() {
                     ))}
                     <div className="flex justify-end pt-1">
                       <button type="submit" disabled={pwLoading} className="btn-primary rounded-md px-5 py-2 text-sm">
-                        {pwLoading ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /><span>Updating…</span></> : 'Update Password'}
+                        {pwLoading ? <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : 'Update Password'}
                       </button>
                     </div>
                   </form>
