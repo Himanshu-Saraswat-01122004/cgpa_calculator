@@ -513,9 +513,9 @@ export default function ProfilePage() {
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                       <XAxis dataKey="name" stroke={chartColors.text} fontSize={11} tickLine={false} axisLine={false} />
-                      <YAxis stroke={chartColors.text} fontSize={11} tickLine={false} axisLine={false} domain={[0, 10]} />
+                      <YAxis stroke={chartColors.text} fontSize={11} tickLine={false} axisLine={false} domain={[(dataMin: number) => Math.max(0, Math.floor(dataMin - 0.5)), (dataMax: number) => Math.min(10, Math.ceil(dataMax + 0.5))]} />
                       <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, color: chartColors.tooltipText, borderRadius: '0.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.3)', fontSize: 12 }} />
-                      <Area type="monotone" dataKey="cgpa" stroke={cgpaColor} strokeWidth={2} fillOpacity={1} fill="url(#cgpaGradProfile)" />
+                      <Area type="natural" dataKey="cgpa" stroke={cgpaColor} strokeWidth={2.5} fillOpacity={1} fill="url(#cgpaGradProfile)" dot={{ r: 4, fill: cgpaColor, strokeWidth: 0 }} activeDot={{ r: 6, fill: cgpaColor, strokeWidth: 2, stroke: '#fff' }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
