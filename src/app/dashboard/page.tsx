@@ -156,18 +156,6 @@ export default function DashboardPage() {
 
   const totalCredits = useMemo(() => semesters.flatMap((s) => s.courses).reduce((acc, c) => acc + c.credits, 0), [semesters]);
   const sgpaData = useMemo(() => semesters.map((s) => ({ name: s.semesterName, sgpa: parseFloat(calculateSGPA(s.courses)) })).filter((i) => !isNaN(i.sgpa)), [semesters]);
-  const cgpaData = useMemo(() => {
-    let cumulativeCourses: Course[] = [];
-    return semesters.map((s) => {
-      cumulativeCourses = [...cumulativeCourses, ...s.courses];
-      const cgpaVal = parseFloat(calculateSGPA(cumulativeCourses));
-      return {
-        name: s.semesterName,
-        cgpa: isNaN(cgpaVal) ? 0 : cgpaVal,
-      };
-    }).filter((i) => !isNaN(i.cgpa));
-  }, [semesters]);
-
   const gradeDistributionData = useMemo(() => {
     const all = semesters.flatMap((s) => s.courses);
     const counts = all.reduce((acc: { [k: string]: number }, c) => { acc[c.grade] = (acc[c.grade] || 0) + 1; return acc; }, {});
@@ -177,7 +165,6 @@ export default function DashboardPage() {
   const isDark = theme === 'dark';
   const chartColors = useMemo(() => ({
     primary:      isDark ? '#818cf8' : '#6366f1',
-    secondary:    isDark ? '#a78bfa' : '#8b5cf6',
     text:         isDark ? '#71717a' : '#71717a',
     grid:         isDark ? '#1e1e22' : '#e4e4e7',
     tooltipBg:    isDark ? '#111113' : '#ffffff',
@@ -250,7 +237,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Charts */}
-        <div className="mb-6 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mb-6 grid gap-3 md:grid-cols-2">
           <ChartCard title="SGPA Trend" desc="Your performance across semesters" delay="0s">
             <ResponsiveContainer width="100%" height={260}>
               <AreaChart data={sgpaData}>
@@ -265,24 +252,6 @@ export default function DashboardPage() {
                 <YAxis stroke={chartColors.text} fontSize={11} tickLine={false} axisLine={false} domain={[0, 10]} />
                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, color: chartColors.tooltipText, borderRadius: '0.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.3)', fontSize: 12 }} />
                 <Area type="monotone" dataKey="sgpa" stroke={chartColors.primary} strokeWidth={2} fillOpacity={1} fill="url(#sgpaGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <ChartCard title="CGPA Trend" desc="Your cumulative performance trend" delay="0.03s">
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={cgpaData}>
-                <defs>
-                  <linearGradient id="cgpaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor={chartColors.secondary} stopOpacity={0.3} />
-                    <stop offset="95%" stopColor={chartColors.secondary} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                <XAxis dataKey="name" stroke={chartColors.text} fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke={chartColors.text} fontSize={11} tickLine={false} axisLine={false} domain={[0, 10]} />
-                <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, color: chartColors.tooltipText, borderRadius: '0.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.3)', fontSize: 12 }} />
-                <Area type="monotone" dataKey="cgpa" stroke={chartColors.secondary} strokeWidth={2} fillOpacity={1} fill="url(#cgpaGrad)" />
               </AreaChart>
             </ResponsiveContainer>
           </ChartCard>

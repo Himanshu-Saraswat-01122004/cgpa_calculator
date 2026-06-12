@@ -356,3 +356,25 @@
 
 /* Stat card accent — remove gradient line */
 .stat-card-accent::after { display: none; }
+
+/* Smooth animated transitions for theme switching */
+body, 
+header, 
+footer, 
+.card, 
+input, 
+select, 
+textarea, 
+button:not(.btn-primary), 
+span, 
+p, 
+h1, 
+h2, 
+h3, 
+h4, 
+a {
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}

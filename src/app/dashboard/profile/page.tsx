@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import {
   Eye, EyeOff, Calculator, ArrowLeft, Lock,
   BookOpen, Star, ClipboardList, Camera, Building2, Save,
@@ -185,6 +187,28 @@ export default function ProfilePage() {
   const cgpaNum = parseFloat(cgpa);
   const cgpaColor = cgpaNum >= 9 ? '#10b981' : cgpaNum >= 8 ? '#6366f1' : cgpaNum >= 7 ? '#8b5cf6' : cgpaNum >= 5.5 ? '#f59e0b' : '#f87171';
   const cgpaLabel = cgpaNum >= 9 ? 'Outstanding' : cgpaNum >= 8 ? 'Excellent' : cgpaNum >= 7 ? 'Good' : cgpaNum >= 5.5 ? 'Average' : cgpaNum > 0 ? 'Needs Work' : '—';
+
+  const { theme } = useTheme();
+  const cgpaData = useMemo(() => {
+    let cumulativeCourses: Course[] = [];
+    return semesters.map((s) => {
+      cumulativeCourses = [...cumulativeCourses, ...s.courses];
+      const cgpaVal = calcSGPA(cumulativeCourses);
+      return {
+        name: s.semesterName,
+        cgpa: isNaN(cgpaVal) ? 0 : parseFloat(cgpaVal.toFixed(2)),
+      };
+    }).filter((i) => !isNaN(i.cgpa));
+  }, [semesters]);
+
+  const isDark = theme === 'dark';
+  const chartColors = useMemo(() => ({
+    text:         isDark ? '#71717a' : '#71717a',
+    grid:         isDark ? '#1e1e22' : '#e4e4e7',
+    tooltipBg:    isDark ? '#111113' : '#ffffff',
+    tooltipBorder:isDark ? '#27272a' : '#e4e4e7',
+    tooltipText:  isDark ? '#f4f4f5' : '#09090b',
+  }), [isDark]);
 
 
 
@@ -470,6 +494,33 @@ export default function ProfilePage() {
 
           {/* ── RIGHT column ── */}
           <div className="space-y-4 lg:col-span-2">
+
+            {/* CGPA Trend Chart */}
+            {semesters.length > 0 && (
+              <div className="card rounded-xl p-5">
+                <div className="mb-4">
+                  <p className="text-sm font-semibold text-foreground">CGPA Trend</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Your cumulative academic performance trend semester-wise</p>
+                </div>
+                <div className="h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={cgpaData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="cgpaGradProfile" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%"  stopColor={cgpaColor} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={cgpaColor} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                      <XAxis dataKey="name" stroke={chartColors.text} fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke={chartColors.text} fontSize={11} tickLine={false} axisLine={false} domain={[0, 10]} />
+                      <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, color: chartColors.tooltipText, borderRadius: '0.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.3)', fontSize: 12 }} />
+                      <Area type="monotone" dataKey="cgpa" stroke={cgpaColor} strokeWidth={2} fillOpacity={1} fill="url(#cgpaGradProfile)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
 
             {/* Semester performance */}
             {semesters.length > 0 && (
